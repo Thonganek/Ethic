@@ -749,16 +749,16 @@ var REPORTS = [
 ];
 
 var OPINIONS_STD = [
-  { v: 'Y', t: 'รับรอง (Y)', tone: 'good' },
-  { v: 'C', t: 'แก้ไขเพื่อรับรอง (C)', tone: 'warn' },
-  { v: 'R', t: 'ขอให้ผู้วิจัยชี้แจงเพิ่มเติม เพื่อนำกลับมาพิจารณาใหม่ (R)', short: 'ชี้แจงเพิ่มเติม (R)', tone: 'info', reason: true },
-  { v: 'N', t: 'ไม่รับรอง (N)', tone: 'bad', reason: true }
+  { v: 'Y', t: 'รับรอง (Y)', tone: 'good', sub: 'รับรองโดยไม่มีเงื่อนไข (Approved)' },
+  { v: 'C', t: 'แก้ไขเพื่อรับรอง (C)', tone: 'warn', sub: 'รับรองในหลักการ ขอให้แก้ไขเพิ่มเติมตามความเห็น (Approved after minor revision)' },
+  { v: 'R', t: 'ขอให้ผู้วิจัยชี้แจงเพิ่มเติม เพื่อนำกลับมาพิจารณาใหม่ (R)', short: 'ชี้แจงเพิ่มเติม (R)', tone: 'info', reason: true, sub: 'ยังไม่รับรองจนกว่าจะมีการแก้ไขตามข้อเสนอแนะ (Pending due to major revision)' },
+  { v: 'N', t: 'ไม่รับรอง (N)', tone: 'bad', reason: true, sub: 'ไม่รับรองตามเหตุผลที่ชี้แจง (Disapproved)' }
 ];
 var OPINIONS_LAY = [
-  { v: 'Y', t: 'รับทราบ/รับรอง (Y)', tone: 'good' },
-  { v: 'C', t: 'แก้ไขเพื่อรับทราบ/รับรอง (C)', tone: 'warn' },
-  { v: 'R', t: 'ขอให้ผู้วิจัยชี้แจงเพิ่มเติม เพื่อนำกลับมาพิจารณาใหม่ (R)', short: 'ชี้แจงเพิ่มเติม (R)', tone: 'info', reason: true },
-  { v: 'N', t: 'ไม่รับรอง (N)', tone: 'bad', reason: true }
+  { v: 'Y', t: 'รับทราบ/รับรอง (Y)', tone: 'good', sub: 'รับรองโดยไม่มีเงื่อนไข (Approved)' },
+  { v: 'C', t: 'แก้ไขเพื่อรับทราบ/รับรอง (C)', tone: 'warn', sub: 'รับรองในหลักการ ขอให้แก้ไขเพิ่มเติมตามความเห็น (Approved after minor revision)' },
+  { v: 'R', t: 'ขอให้ผู้วิจัยชี้แจงเพิ่มเติม เพื่อนำกลับมาพิจารณาใหม่ (R)', short: 'ชี้แจงเพิ่มเติม (R)', tone: 'info', reason: true, sub: 'ยังไม่รับรองจนกว่าจะมีการแก้ไขตามข้อเสนอแนะ (Pending due to major revision)' },
+  { v: 'N', t: 'ไม่รับรอง (N)', tone: 'bad', reason: true, sub: 'ไม่รับรองตามเหตุผลที่ชี้แจง (Disapproved)' }
 ];
 var OPINIONS_EXEMPT = [
   { v: 'Y', t: 'ออกหนังสือรับทราบให้แก่ผู้วิจัย และบรรจุในวาระ 3.4 (กรณีไม่มีข้อแก้ไข/ข้อเสนอแนะ)', short: 'ออกหนังสือรับทราบ', tone: 'good' },
@@ -947,33 +947,81 @@ var CHAIR = {
     }
   ];
 
+  /* ประเด็นที่มีในแบบประเมินโครงการวิจัยเดิมของคณะกรรมการ แต่ไม่มีในแบบ AF ของ SOP
+     ใช้มาตรวัดเดียวกับแบบ AF: ข้อที่โครงการไม่มี/ไม่ได้ทำ ให้เลือก "ไม่เกี่ยวข้อง" */
+  var NA = ' (หากไม่มี เลือก “ไม่เกี่ยวข้อง”)';
+  var EX = {
+    title: { id: 'ex1', title: 'ชื่อโครงการภาษาไทย/อังกฤษ', desc: 'ชื่อโครงการภาษาไทยและภาษาอังกฤษมีความเหมาะสม สอดคล้องกัน และสื่อถึงสิ่งที่ศึกษา' },
+    lit: { id: 'ex2', title: 'การทบทวนวรรณกรรมที่เกี่ยวข้อง', desc: 'มีการทบทวนวรรณกรรมที่ชัดเจน เพียงพอ และสนับสนุนความจำเป็นของการวิจัย' },
+    compare: { id: 'ex3', title: 'การใช้กลุ่มเปรียบเทียบ', desc: 'กรณีมีกลุ่มเปรียบเทียบหรือกลุ่มควบคุม การแบ่งกลุ่มและการปฏิบัติต่อกลุ่มเปรียบเทียบมีความเหมาะสม' + NA },
+    visits: { id: 'ex4', title: 'จำนวนครั้งที่นัดผู้เข้าร่วมการศึกษา', desc: 'จำนวนครั้งและระยะเวลาที่นัดหมายอาสาสมัครเหมาะสม ไม่เป็นภาระเกินความจำเป็น' },
+    coerce: { id: 'ex5', title: 'การบังคับให้เข้าร่วมโครงการวิจัย', desc: 'ไม่มีการบังคับ ข่มขู่ กดดัน หรือจูงใจเกินควรให้เข้าร่วมโครงการวิจัย (หากพบว่ามี เลือก “ไม่เหมาะสม”)' },
+    welfare: { id: 'ex6', title: 'การคำนึงถึงอาสาสมัครด้านร่างกายและจิตใจ', desc: 'ผู้วิจัยคำนึงถึงความเป็นอยู่ที่ดีของอาสาสมัครทั้งด้านร่างกายและจิตใจ มากกว่าผลประโยชน์ทางวิชาการ' },
+    care: { id: 'ex7', title: 'การรักษาพยาบาลหรือชดเชย', desc: 'ระบุการรักษา ผู้รับผิดชอบค่าใช้จ่าย และการชดเชย กรณีเกิดอาการไม่พึงประสงค์หรือความเสียหายจากการวิจัย' + NA },
+    bio: {
+      id: 'ex8', title: 'วัตถุทางชีวภาพและพันธุศาสตร์', desc: 'เลือด เนื้อเยื่อ สิ่งส่งตรวจ หรือสารพันธุกรรมของอาสาสมัคร',
+      naAll: 'โครงการนี้ไม่มีการใช้วัตถุทางชีวภาพ',
+      subs: [
+        { id: 'ex8.1', title: 'การใช้วัตถุทางชีวภาพ', desc: 'ชนิด ปริมาณ ความถี่ และวิธีการเก็บมีความเหมาะสม' },
+        { id: 'ex8.2', title: 'การวิจัยทางพันธุศาสตร์', desc: 'มีมาตรการปกป้องข้อมูลที่เชื่อมโยงถึงตัวบุคคลและครอบครัวอย่างเหมาะสม' },
+        { id: 'ex8.3', title: 'การเก็บเลือดหรือเนื้อเยื่อไว้', desc: 'หากเก็บไว้ใช้ในอนาคต มีการระบุความจำเป็นและแจ้งในเอกสารชี้แจงผู้เข้าร่วมวิจัย' },
+        { id: 'ex8.4', title: 'การส่งวัตถุชีวภาพออกนอกสถาบัน', desc: 'ระบุหน่วยงานปลายทาง วัตถุประสงค์ และการขออนุญาตอย่างเหมาะสม' }
+      ]
+    },
+    objective: { id: 'ex9', title: 'วัตถุประสงค์', desc: 'วัตถุประสงค์ชัดเจน และสอดคล้องกับหลักการและเหตุผล' },
+    vulnerable: { id: 'ex10', title: 'อาสาสมัครกลุ่มเปราะบาง (Vulnerable subjects)', desc: 'กรณีมีอาสาสมัครกลุ่มเปราะบาง มีเหตุผลความจำเป็นและแนวทางปกป้องที่เหมาะสม' + NA },
+    pay: { id: 'ex11', title: 'ค่าตอบแทนผู้เข้าร่วมโครงการวิจัย', desc: 'กรณีมีค่าตอบแทน ค่าเดินทาง หรือค่าเสียเวลา จำนวนเหมาะสม ไม่มากจนเป็นแรงจูงใจให้เข้าร่วม' + NA },
+    training: { id: 'ex12', title: 'การอบรมจริยธรรมการวิจัยในคน', desc: 'ผู้วิจัยและผู้ร่วมโครงการวิจัยผ่านการอบรมจริยธรรมการวิจัย' }
+  };
+  var EX_ORDER = {
+    std: ['title', 'lit', 'compare', 'visits', 'coerce', 'welfare', 'care', 'bio'],
+    exempt: ['title', 'lit', 'objective', 'compare', 'visits', 'coerce', 'vulnerable', 'welfare', 'pay', 'care', 'bio', 'training'],
+    lay: ['coerce', 'welfare', 'care']
+  };
+  function exSection(kind) {
+    var prefix = kind === 'exempt' ? '9.' : '';
+    return {
+      id: 'ex', title: (kind === 'exempt' ? '9. ' : '') + 'ประเด็นพิจารณาเพิ่มเติม',
+      th: kind === 'exempt' ? '' : 'ตามแบบประเมินโครงการวิจัยเดิมของคณะกรรมการ',
+      items: EX_ORDER[kind].map(function (k, i) {
+        var d = EX[k], no = prefix + (i + 1);
+        var it = { id: d.id, no: no, title: d.title, desc: d.desc };
+        if (d.subs) {
+          it.naAll = d.naAll;
+          it.subs = d.subs.map(function (s, j) { return { id: s.id, no: no + '.' + (j + 1), title: s.title, desc: s.desc }; });
+        }
+        return it;
+      })
+    };
+  }
+
   window.FORMS = {
     AF01: {
       key: 'AF01', code: 'AF/01-04/03.1', appendix: 'ภาคผนวก 1',
       title: 'แบบฟอร์มการประเมินโครงการวิจัยที่เข้าข่ายการพิจารณาแบบยกเว้น',
-      sections: EXEMPT_SECTIONS, opinions: OPINIONS_EXEMPT, opinionLabel: 'สรุปความเห็นของกรรมการ',
-      risk: 'optional', report: 'optional'
+      sections: EXEMPT_SECTIONS.concat([exSection('exempt')]), opinions: OPINIONS_EXEMPT, opinionLabel: 'สรุปความเห็นของกรรมการ',
+      risk: 'optional', report: 'optional', suggest: true
     },
     AF02: {
       key: 'AF02', code: 'AF/02-04/03.1', appendix: 'ภาคผนวก 2',
       title: 'แบบฟอร์มการประเมินโครงการวิจัยที่เข้าข่ายการพิจารณาแบบเร็ว',
-      sections: [SEC_SV, SEC_EI, SEC_IC, SEC_QI], opinions: OPINIONS_STD,
+      sections: [SEC_SV, SEC_EI, SEC_IC, SEC_QI, exSection('std')], opinions: OPINIONS_STD,
       opinionLabel: 'สรุปความเห็นโดยรวม ท่านเห็นชอบให้ดำเนินการวิจัยโครงการวิจัยนี้หรือไม่',
-      risk: 'required', report: 'required'
+      risk: 'required', report: 'required', suggest: true
     },
     AF03: {
       key: 'AF03', code: 'AF/03-04/03.1', appendix: 'ภาคผนวก 3',
       title: 'แบบฟอร์มการประเมินโครงการวิจัยที่เข้าข่ายการพิจารณาแบบเต็มรูปแบบ',
-      sections: [SEC_SV, SEC_EI, SEC_IC, SEC_QI], opinions: OPINIONS_STD,
+      sections: [SEC_SV, SEC_EI, SEC_IC, SEC_QI, exSection('std')], opinions: OPINIONS_STD,
       opinionLabel: 'สรุปความเห็นโดยรวม ท่านเห็นชอบให้ดำเนินการวิจัยโครงการวิจัยนี้หรือไม่',
-      risk: 'required', report: 'required'
+      risk: 'required', report: 'required', suggest: true
     },
     AF04: {
       key: 'AF04', code: 'AF/04-04/01.0', appendix: 'ภาคผนวก 4',
       title: 'แบบฟอร์มการประเมินโครงการวิจัยสำหรับตัวแทนภาคประชาชน (Layperson)',
-      sections: [SEC_IC], opinions: OPINIONS_LAY,
+      sections: [SEC_IC, exSection('lay')], opinions: OPINIONS_LAY,
       opinionLabel: 'สรุปความเห็นโดยรวม ท่านเห็นชอบให้ดำเนินการวิจัยโครงการวิจัยนี้หรือไม่',
-      risk: 'required', report: 'none'
+      risk: 'required', report: 'none', suggest: false
     }
   };
 })();
@@ -1605,7 +1653,7 @@ function formKeyFor(p) {
   return S.user.memberType === 'layperson' ? 'AF04' : TYPES[p.reviewType].form;
 }
 function blankData() {
-  return { answers: {}, risk: '', reportPeriod: '', opinion: '', opinionReason: '', other: '', step: 0 };
+  return { answers: {}, risk: '', reportPeriod: '', opinion: '', opinionReason: '', suggestType: '', other: '', step: 0 };
 }
 function mergeData(base, d) {
   d = d || {};
@@ -1689,6 +1737,7 @@ function problems(rv, only) {
   if (rv.form.risk === 'required' && !d.risk) add('conclude', 'ยังไม่ได้ประเมินความเสี่ยงของโครงการ');
   if (rv.form.report === 'required' && !d.reportPeriod) add('conclude', 'ยังไม่ได้ระบุระยะเวลาการรายงานความก้าวหน้า');
   var op = byValue(rv.form.opinions, d.opinion);
+  if (rv.form.suggest && !TYPES[d.suggestType]) add('conclude', 'ยังไม่ได้ระบุประเภทการพิจารณาที่เห็นควร');
   if (!op) add('conclude', 'ยังไม่ได้สรุปความเห็นโดยรวม');
   else if (op.reason && !String(d.opinionReason).trim()) add('conclude', 'กรุณาระบุเหตุผลประกอบความเห็น');
   return out;
@@ -1848,7 +1897,9 @@ function stepEvaluate(rv) {
     sec.items.forEach(function (it) {
       if (it.subs) {
         html += '<div class="q group"><div class="q-text"><span class="q-no">' + esc(it.no) + '</span><div><div class="q-title">' + esc(it.title) +
-          (it.ref ? ' <span class="q-ref">(' + esc(it.ref) + ')</span>' : '') + '</div>' + (it.desc ? '<div class="q-desc">' + esc(it.desc) + '</div>' : '') + '</div></div></div>';
+          (it.ref ? ' <span class="q-ref">(' + esc(it.ref) + ')</span>' : '') + '</div>' + (it.desc ? '<div class="q-desc">' + esc(it.desc) + '</div>' : '') + '</div></div>' +
+          (it.naAll && !reviewLocked(rv) ? '<div style="margin:10px 0 0 40px"><button type="button" class="btn ghost sm" data-act="group-na" data-ids="' +
+            esc(it.subs.map(function (s) { return s.id; }).join(',')) + '">' + icon('minus') + esc(it.naAll) + '</button></div>' : '') + '</div>';
         it.subs.forEach(function (s) { html += qRow({ id: s.id, no: s.no, title: s.title, desc: s.desc, note: s.note }, rv, true); });
       } else html += qRow(it, rv, false);
     });
@@ -1872,9 +1923,18 @@ function stepConclude(rv) {
   }
   var op = byValue(f.opinions, d.opinion);
   html += '<section class="card"><div class="card-head"><h3>' + esc(f.opinionLabel) + ' <span class="req">*</span></h3></div><div class="card-body stack">' +
-    radios('opinion', f.opinions.map(function (o) { return { v: o.v, t: o.t, rerender: 1 }; }), d.opinion) +
+    radios('opinion', f.opinions.map(function (o) { return { v: o.v, t: o.t, sub: o.sub, rerender: 1 }; }), d.opinion) +
     (op && op.reason ? '<label class="field"><span class="label">โปรดระบุเหตุผล <span class="req">*</span></span>' + textarea('opinionReason', d.opinionReason, 'ระบุเหตุผลประกอบความเห็น', 3) + '</label>' : '') +
     '</div></section>';
+  if (f.suggest) {
+    html += '<section class="card"><div class="card-head"><h3>เห็นควรพิจารณาโครงการในประเภทใด <span class="req">*</span></h3>' +
+      '<span class="small muted">สำนักงานกำหนดเบื้องต้น: <b>' + esc(TYPES[rv.project.reviewType].th) + '</b></span></div><div class="card-body">' +
+      radios('suggestType', [
+        { v: 'exempt', t: 'แบบยกเว้น (Exemption review)', sub: 'โครงการวิจัยที่เข้าข่ายการพิจารณาจริยธรรมการวิจัยในมนุษย์แบบยกเว้น' },
+        { v: 'expedited', t: 'แบบเร็ว (Expedited review)', sub: 'โครงการวิจัยที่เข้าข่ายการพิจารณาแบบเร็ว' },
+        { v: 'full', t: 'แบบเต็มรูปแบบ (Full board)', sub: 'โครงการวิจัยที่เข้าข่ายการพิจารณาแบบกรรมการเต็มชุด' }
+      ], d.suggestType) + '</div></section>';
+  }
   html += '<section class="card"><div class="card-head"><h3>ข้อเสนอแนะอื่น ๆ</h3><span class="small muted">ถ้ามี</span></div><div class="card-body">' +
     textarea('other', d.other, 'ข้อเสนอแนะเพิ่มเติมนอกเหนือจากรายข้อ', 4) + '</div></section>';
   return html + '</div>';
@@ -1899,6 +1959,7 @@ function stepConfirm(rv) {
     '<dt>ผู้ประเมิน</dt><dd>' + esc(S.user.fullName) + '</dd>' +
     '<dt>ประเมินรายข้อ</dt><dd>' + c.rated + '/' + c.total + ' ข้อ · ' + chip('ไม่เหมาะสม ' + c.no + ' ข้อ', c.no ? 'bad' : 'good', c.no ? 'x' : 'check') + '</dd>' +
     (f.risk !== 'none' ? '<dt>ความเสี่ยง</dt><dd>' + esc(risk ? risk.t : '–') + '</dd>' : '') +
+    (f.suggest ? '<dt>ประเภทที่เห็นควร</dt><dd>' + esc(TYPES[d.suggestType] ? TYPES[d.suggestType].th + ' (' + TYPES[d.suggestType].en + ')' : '–') + '</dd>' : '') +
     (f.report !== 'none' ? '<dt>รายงานความก้าวหน้า</dt><dd>' + esc(rep ? rep.t : '–') + '</dd>' : '') +
     '<dt>สรุปความเห็น</dt><dd>' + (op ? chip(op.t, op.tone) : '–') + (d.opinionReason ? '<div class="pre small" style="margin-top:4px">' + esc(d.opinionReason) + '</div>' : '') + '</dd>' +
     '</dl></div></section>';
@@ -1968,6 +2029,16 @@ A['rate'] = function (el) {
   touch();
   refreshBar();
   if (rate === 'no' && !String(a.c || '').trim()) $('textarea', q).focus();
+};
+A['group-na'] = function (el) {
+  var rv = S.review;
+  if (!rv || reviewLocked(rv)) return;
+  el.dataset.ids.split(',').forEach(function (id) {
+    var a = rv.data.answers[id] = rv.data.answers[id] || { r: '', c: '' };
+    a.r = 'na';
+  });
+  touch();
+  refreshStep();
 };
 A['add-comment'] = function (el) {
   var q = el.closest('.q');
@@ -2133,21 +2204,26 @@ function submittedOf(ov) { return ov.reviews.filter(function (r) { return r.stat
 
 /** เรียงหมวดและข้อประเมินตามแบบฟอร์มที่กรรมการใช้จริงในโครงการนี้ */
 function overviewItems(ov) {
-  var seen = {}, out = [];
-  submittedOf(ov).forEach(function (rv) {
-    var f = FORMS[rv.formType];
-    if (!f) return;
-    rateables(f).forEach(function (r) {
+  var seen = {}, out = [], used = [];
+  submittedOf(ov).forEach(function (rv) { if (FORMS[rv.formType] && used.indexOf(rv.formType) < 0) used.push(rv.formType); });
+  // ใช้เลขข้อของแบบฟอร์มหลักของโครงการก่อน แล้วจึงเติมข้อที่มีเฉพาะในแบบอื่น
+  var main = TYPES[ov.project.reviewType] ? TYPES[ov.project.reviewType].form : '';
+  used.sort(function (a, b) { return (a === main ? 0 : 1) - (b === main ? 0 : 1); });
+  used.forEach(function (key) {
+    rateables(FORMS[key]).forEach(function (r) {
       if (seen[r.id]) return;
       seen[r.id] = true;
       out.push(r);
     });
   });
   var order = ['sv', 'ei', 'ic', 'qi'];
-  return out.sort(function (a, b) {
-    var ia = order.indexOf(a.sec.id), ib = order.indexOf(b.sec.id);
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-  });
+  var rank = function (r) { var i = order.indexOf(r.sec.id); return r.sec.id === 'ex' ? 100 : (i < 0 ? 99 : i); };
+  return out.sort(function (a, b) { return rank(a) - rank(b); });
+}
+function suggestOf(rv) {
+  var d = rv.data || {};
+  if (TYPES[d.suggestType]) return d.suggestType;
+  return d.cls && TYPES[d.cls.type] && (d.cls.criteria || []).length ? d.cls.type : '';
 }
 function groupedComments(ov) {
   var subs = submittedOf(ov), groups = [];
@@ -2217,6 +2293,8 @@ VIEWS.overview = function () {
       return '<article class="card rv"><div class="rv-top"><div class="avatar">' + (i + 1) + '</div><div class="grow"><b>กรรมการท่านที่ ' + (i + 1) + '</b>' +
         '<div class="small" style="color:var(--ink-2)">' + esc(rv.reviewerName) + (rv.memberType === 'layperson' ? ' · ตัวแทนภาคประชาชน' : '') + '</div></div></div>' +
         '<dl class="kv"><dt>สรุปความเห็น</dt><dd>' + (op ? chip(op.short || op.t, op.tone) : '–') + '</dd>' +
+        (suggestOf(rv) ? '<dt>เห็นควรพิจารณา</dt><dd>' + chip(TYPES[suggestOf(rv)].th, suggestOf(rv) === p.reviewType ? '' : 'warn', suggestOf(rv) === p.reviewType ? '' : 'alert') +
+          (suggestOf(rv) === p.reviewType ? '' : '<div class="small muted">ต่างจากที่สำนักงานกำหนด (' + esc(TYPES[p.reviewType].th) + ')</div>') + '</dd>' : '') +
         '<dt>ความเสี่ยง</dt><dd>' + esc(risk ? risk.short : '–') + '</dd>' +
         '<dt>รายงานความก้าวหน้า</dt><dd>' + esc(rep ? rep.t : '–') + '</dd>' +
         '<dt>ข้อที่ไม่เหมาะสม</dt><dd>' + rv.commentCount + ' ข้อ</dd>' +
@@ -2296,7 +2374,7 @@ function sumEditor(ov) {
   if (ro) html += '<div class="note warn">' + icon('lock') + '<div>โครงการนี้ปิดการแก้ไขแล้ว</div></div>';
   html += '<div class="grid-2"><label class="field"><span class="label">เข้าข่ายการพิจารณาแบบ</span><select class="select" data-sum="type" data-rerender="1"' + dis + '>' +
     Object.keys(TYPES).map(function (k) { return '<option value="' + k + '"' + (e.type === k ? ' selected' : '') + '>' + esc(TYPES[k].th + ' (' + TYPES[k].en + ')') + '</option>'; }).join('') + '</select>' +
-    hintOf(ov, function (rv) { var c = (rv.data || {}).cls; return c && TYPES[c.type] && (c.criteria || []).length ? TYPES[c.type].th : ''; }) + '</label>' +
+    hintOf(ov, function (rv) { var c = (rv.data || {}).cls; return suggestOf(rv) ? TYPES[suggestOf(rv)].th : ''; }) + '</label>' +
     '<label class="field"><span class="label">ตามหลักเกณฑ์ข้อ</span><input class="input" data-sum="criteria" value="' + esc(e.criteria) + '" maxlength="300" placeholder="เช่น ข้อ 2 (2.2)"' + dis + '>' +
     hintOf(ov, function (rv) { var c = (rv.data || {}).cls; return c ? criteriaText(c.criteria) : ''; }) + '</label></div>';
   html += '<div class="grid-2"><label class="field"><span class="label">มีความเสี่ยง</span><select class="select" data-sum="risk"' + dis + '>' +
@@ -2452,6 +2530,7 @@ function reviewDetail(p, rv) {
   var op = byValue(f.opinions, d.opinion), risk = byValue(RISKS, d.risk), rep = byValue(REPORTS, d.reportPeriod), c = d.cls || {};
   var html = '<dl class="kv" style="margin:0 0 16px"><dt>ผู้ประเมิน</dt><dd><b>' + esc(rv.reviewerName) + '</b></dd><dt>แบบฟอร์ม</dt><dd>' + esc(f.code + ' ' + f.title) + '</dd>' +
     (TYPES[c.type] && (c.criteria || []).length ? '<dt>ประเภท</dt><dd>' + esc(TYPES[c.type].th) + ((c.criteria || []).length ? ' · ตามเกณฑ์' + esc(criteriaText(c.criteria)) : '') + (c.reason ? '<div class="small pre">' + esc(c.reason) + '</div>' : '') + '</dd>' : '') +
+    (TYPES[d.suggestType] ? '<dt>ประเภทที่เห็นควร</dt><dd>' + esc(TYPES[d.suggestType].th + ' (' + TYPES[d.suggestType].en + ')') + '</dd>' : '') +
     '<dt>ความเสี่ยง</dt><dd>' + esc(risk ? risk.t : '–') + '</dd><dt>รายงานความก้าวหน้า</dt><dd>' + esc(rep ? rep.t : '–') + '</dd>' +
     '<dt>สรุปความเห็น</dt><dd>' + (op ? chip(op.t, op.tone) : '–') + (d.opinionReason ? '<div class="pre small">' + esc(d.opinionReason) + '</div>' : '') + '</dd>' +
     (d.other ? '<dt>ข้อเสนอแนะอื่น</dt><dd class="pre">' + esc(d.other) + '</dd>' : '') + '</dl>';
@@ -3191,6 +3270,11 @@ function printReview(p, rv) {
   }
   if (f.report !== 'none' && (f.report === 'required' || d.reportPeriod)) {
     html += '<div class="p-h">ระยะเวลาการรายงานความก้าวหน้าของโครงการ</div>' + REPORTS.map(function (r) { return '<div>' + cb(d.reportPeriod === r.v) + esc(r.t) + '</div>'; }).join('');
+  }
+  if (f.suggest) {
+    html += '<div class="p-h">เห็นควรพิจารณาโครงการในประเภทใด</div>' + Object.keys(TYPES).map(function (k) {
+      return '<div>' + cb(d.suggestType === k) + esc(TYPES[k].th + ' (' + TYPES[k].en + ')') + '</div>';
+    }).join('');
   }
   html += '<div class="p-h">' + esc(f.opinionLabel) + '</div>' + f.opinions.map(function (o) {
     return '<div>' + cb(d.opinion === o.v) + esc(o.t) + (d.opinion === o.v && o.reason && d.opinionReason ? ' โปรดระบุเหตุผล: <span class="p-pre">' + esc(d.opinionReason) + '</span>' : '') + '</div>';
