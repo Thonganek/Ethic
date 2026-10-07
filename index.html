@@ -570,11 +570,15 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 /* ---------- KPI ---------- */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
 .kpi { padding: 18px 20px; }
+.kpi[data-act] { width: 100%; text-align: left; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.kpi[data-act]:hover { border-color: var(--brand); box-shadow: var(--shadow-lg); }
+.kpi[data-act]:focus-visible { outline: 3px solid rgba(14, 107, 100, .35); outline-offset: 3px; }
+.kpi.active { border-color: var(--brand); background: var(--brand-softer); }
 .kpi-label { font-size: .87rem; color: var(--ink-2); display: flex; gap: 8px; align-items: center; }
 .kpi-label .dot { width: 10px; height: 10px; border-radius: 3px; background: var(--line-2); flex: none; }
-.kpi-value { font-size: 2.1rem; font-weight: 600; line-height: 1.25; margin-top: 4px; }
+.kpi-value { display: block; font-size: 2.1rem; font-weight: 600; line-height: 1.25; margin-top: 4px; }
 .kpi-value small { font-size: .9rem; font-weight: 400; color: var(--muted); margin-left: 4px; }
-.kpi-sub { font-size: .82rem; color: var(--muted); }
+.kpi-sub { display: block; font-size: .82rem; color: var(--muted); }
 .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: flex-end; flex: 1 1 320px; }
 .filters .input { flex: 1 1 200px; width: auto; max-width: 320px; min-width: 0; }
 .filters .select { flex: 0 1 auto; width: auto; min-width: 150px; }
@@ -1521,6 +1525,21 @@ function api(action, data) {
 /* ---------- routing ---------- */
 function isAdmin() { return !!S.user && S.user.role === 'admin'; }
 
+/** การ์ดสรุปที่กดเพื่อเปิดรายการตามจำนวนที่แสดง */
+function dashboardKpi(label, value, unit, color, sub, act, filter, selected) {
+  return '<button type="button" class="card kpi' + (selected ? ' active' : '') + '" data-act="' + act + '"' +
+    (filter !== null ? ' data-f="' + esc(filter) + '" aria-pressed="' + !!selected + '"' : '') +
+    ' title="' + esc('ดู' + label) + '"><span class="kpi-label"><span class="dot" style="background:' + color + '"></span>' + esc(label) + '</span>' +
+    '<span class="kpi-value">' + value + '<small>' + esc(unit) + '</small></span>' +
+    (sub ? '<span class="kpi-sub">' + sub + '</span>' : '') + '</button>';
+}
+function showDashboardResults(id) {
+  var table = $('#' + id);
+  if (!table) return;
+  table.focus({ preventScroll: true });
+  (table.closest('section') || table).scrollIntoView({ block: 'start' });
+}
+
 function histPush() {
   var st = { v: S.view, a: S.arg };
   try {
@@ -1946,12 +1965,17 @@ function reviewAction(p, big) {
 /** ตารางงานวิจัยที่กรรมการได้รับมอบหมาย: ชื่องานวิจัย แบบฟอร์ม กำหนดส่ง และสถานะ */
 function homeTable() {
   var f = S.homeFilter, rank = { late: 0, draft: 1, 'new': 2, done: 3, declined: 4, closed: 5 };
-  var list = (S.projects || []).filter(function (p) { return !f || (f === 'todo' ? isTodo(p) : !isTodo(p)); });
+  var list = (S.projects || []).filter(function (p) {
+    if (!f) return true;
+    if (f === 'todo') return isTodo(p);
+    if (f === 'submitted') return p.myStatus === 'submitted';
+    return !isTodo(p);
+  });
   if (!(S.projects || []).length) {
     return '<div class="empty"><div class="empty-ico">' + icon('check') + '</div><h3>ยังไม่มีงานวิจัยที่ได้รับมอบหมาย</h3>' +
       '<p class="muted small">เมื่อสำนักงานมอบหมายโครงการวิจัยให้ท่านพิจารณา โครงการจะปรากฏที่นี่</p></div>';
   }
-  if (!list.length) return '<div class="empty"><p>' + (f === 'todo' ? 'ไม่มีงานวิจัยที่รอการพิจารณาของท่าน' : 'ยังไม่มีงานวิจัยที่ดำเนินการแล้ว') + '</p></div>';
+  if (!list.length) return '<div class="empty"><p>' + (f === 'todo' ? 'ไม่มีงานวิจัยที่รอการพิจารณาของท่าน' : (f === 'submitted' ? 'ยังไม่มีงานวิจัยที่ส่งผลการประเมินแล้ว' : 'ยังไม่มีงานวิจัยที่ดำเนินการแล้ว')) + '</p></div>';
   list = list.slice().sort(function (a, b) {
     var d = rank[myState(a).k] - rank[myState(b).k];
     return d || String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999'));
@@ -1978,9 +2002,8 @@ VIEWS.home = function () {
     if (k === 'done') n.done++;
     if (k === 'late') n.late++;
   });
-  var kpi = function (label, value, color, sub) {
-    return '<div class="card kpi"><div class="kpi-label"><span class="dot" style="background:' + color + '"></span>' + label + '</div>' +
-      '<div class="kpi-value">' + value + '<small>เรื่อง</small></div>' + (sub ? '<div class="kpi-sub">' + sub + '</div>' : '') + '</div>';
+  var kpi = function (label, value, color, filter, sub) {
+    return dashboardKpi(label, value, 'เรื่อง', color, sub, 'home-filter', filter, f === filter);
   };
   var tab = function (k, t, count) {
     return '<button class="vtab' + (f === k ? ' active' : '') + '" data-act="home-filter" data-f="' + k + '">' + t + '<span class="n">' + count + '</span></button>';
@@ -1988,16 +2011,20 @@ VIEWS.home = function () {
   return '<div class="wrap"><div class="page-head"><div><div class="eyebrow">สวัสดี ' + esc(S.user.fullName) + '</div>' +
     '<h1>โครงการวิจัยของฉัน</h1><p>งานวิจัยที่ท่านได้รับมอบหมายให้พิจารณา และสถานะการประเมินของท่าน</p></div>' +
     '<button class="btn ghost" data-act="reload">' + icon('refresh') + 'รีเฟรช</button></div>' +
-    '<div class="kpis">' + kpi('งานวิจัยที่ได้รับมอบหมาย', ps.length, 'var(--brand)') +
-    kpi('รอการพิจารณาของท่าน', n.todo, 'var(--warn)', n.late ? icon('alert') + ' เกินกำหนดส่ง ' + n.late + ' เรื่อง' : '') +
-    kpi('ส่งผลการประเมินแล้ว', n.done, 'var(--good)') + '</div>' +
+    '<div class="kpis">' + kpi('งานวิจัยที่ได้รับมอบหมาย', ps.length, 'var(--brand)', '') +
+    kpi('รอการพิจารณาของท่าน', n.todo, 'var(--warn)', 'todo', n.late ? icon('alert') + ' เกินกำหนดส่ง ' + n.late + ' เรื่อง' : '') +
+    kpi('ส่งผลการประเมินแล้ว', n.done, 'var(--good)', 'submitted') + '</div>' +
     '<section class="card" style="margin-top:18px"><div class="card-head"><h3>ตารางงานวิจัยที่พิจารณาและสถานะ</h3>' +
-    '<div class="vtabs inline">' + tab('', 'ทั้งหมด', ps.length) + tab('todo', 'รอพิจารณา', n.todo) + tab('done', 'ดำเนินการแล้ว', ps.length - n.todo) + '</div></div>' +
-    '<div id="home-table">' + homeTable() + '</div>' +
+    '<div class="vtabs inline">' + tab('', 'ทั้งหมด', ps.length) + tab('todo', 'รอพิจารณา', n.todo) + tab('submitted', 'ส่งผลแล้ว', n.done) + tab('done', 'ดำเนินการแล้ว', ps.length - n.todo) + '</div></div>' +
+    '<div id="home-table" tabindex="-1" aria-label="รายการงานวิจัยตามหมวดที่เลือก">' + homeTable() + '</div>' +
     (ps.length ? '<div class="card-body small muted" style="border-top:1px solid var(--line)">' + icon('info') + ' กดที่ชื่องานวิจัยเพื่อดูรายละเอียดและสถานะ</div>' : '') +
     '</section></div>';
 };
-A['home-filter'] = function (el) { S.homeFilter = el.dataset.f; render(); };
+A['home-filter'] = function (el) {
+  S.homeFilter = el.dataset.f;
+  render();
+  showDashboardResults('home-table');
+};
 
 /** หน้าต่างรายละเอียดและสถานะงานวิจัยของกรรมการ */
 function myProjectModal(p) {
@@ -3308,7 +3335,10 @@ function filteredProjects() {
   var f = S.filters, q = f.q.trim().toLowerCase();
   return (S.projects || []).filter(function (p) {
     if (f.type && p.reviewType !== f.type) return false;
-    if (f.status && projectState(p).k !== f.status) return false;
+    var status = projectState(p).k;
+    if (f.status === 'progress') { if (status !== 'prog' && status !== 'late') return false; }
+    else if (f.status === 'waiting') { if (status !== 'none' && status !== 'unassigned') return false; }
+    else if (f.status && status !== f.status) return false;
     if (!q) return true;
     return [p.title, p.code, p.researcher, p.affiliation].join(' ').toLowerCase().indexOf(q) >= 0;
   });
@@ -3383,34 +3413,51 @@ function dashTable() {
 VIEWS.dashboard = function () {
   var ps = S.projects || [], n = { done: 0, prog: 0, none: 0, late: 0, closed: 0, unassigned: 0 }, totalSub = 0;
   ps.forEach(function (p) { n[projectState(p).k]++; totalSub += p.submitted; });
-  var kpi = function (label, value, unit, color, sub) {
-    return '<div class="card kpi"><div class="kpi-label"><span class="dot" style="background:' + color + '"></span>' + label + '</div>' +
-      '<div class="kpi-value">' + value + '<small>' + unit + '</small></div>' + (sub ? '<div class="kpi-sub">' + sub + '</div>' : '') + '</div>';
-  };
   var f = S.filters;
+  var kpi = function (label, value, unit, color, filter, sub) {
+    return dashboardKpi(label, value, unit, color, sub, filter === null ? 'dashboard-reviewers' : 'dashboard-filter', filter,
+      filter !== null && !f.q && !f.type && f.status === filter);
+  };
   return '<div class="wrap"><div class="page-head"><div><h1>Dashboard ความคืบหน้าการพิจารณา</h1><p>จำนวนกรรมการที่ส่งผลการประเมินแล้วของแต่ละโครงการวิจัย</p></div>' +
     '<div class="row">' + (isAdmin() ? '<button class="btn" data-act="project-new">' + icon('plus') + 'เพิ่มโครงการวิจัย</button>' : '') +
     '<button class="btn ghost" data-act="reload">' + icon('refresh') + 'รีเฟรช</button></div></div>' +
     '<div class="kpis">' +
-    kpi('โครงการทั้งหมด', ps.length, 'เรื่อง', 'var(--brand)', n.closed ? 'ปิดรับผลแล้ว ' + n.closed + ' เรื่อง' : '') +
-    kpi('พิจารณาครบแล้ว', n.done, 'เรื่อง', 'var(--good)') +
-    kpi('อยู่ระหว่างพิจารณา', n.prog + n.late, 'เรื่อง', 'var(--info)', n.late ? icon('alert') + ' เกินกำหนดส่ง ' + n.late + ' เรื่อง' : '') +
-    kpi('ยังไม่มีผู้พิจารณา', n.none + n.unassigned, 'เรื่อง', 'var(--line-2)', n.unassigned ? 'ยังไม่ได้เลือกกรรมการ ' + n.unassigned + ' เรื่อง' : '') +
-    kpi('กรรมการที่ลงทะเบียน', S.meta.reviewerCount || 0, 'ท่าน', 'var(--gold)', 'ส่งผลการประเมินรวม ' + totalSub + ' ฉบับ') +
+    kpi('โครงการทั้งหมด', ps.length, 'เรื่อง', 'var(--brand)', '', n.closed ? 'ปิดรับผลแล้ว ' + n.closed + ' เรื่อง' : '') +
+    kpi('พิจารณาครบแล้ว', n.done, 'เรื่อง', 'var(--good)', 'done') +
+    kpi('อยู่ระหว่างพิจารณา', n.prog + n.late, 'เรื่อง', 'var(--info)', 'progress', n.late ? icon('alert') + ' เกินกำหนดส่ง ' + n.late + ' เรื่อง' : '') +
+    kpi('ยังไม่มีผู้พิจารณา', n.none + n.unassigned, 'เรื่อง', 'var(--line-2)', 'waiting', n.unassigned ? 'ยังไม่ได้เลือกกรรมการ ' + n.unassigned + ' เรื่อง' : '') +
+    kpi('กรรมการที่ลงทะเบียน', S.meta.reviewerCount || 0, 'ท่าน', 'var(--gold)', null, 'ส่งผลการประเมินรวม ' + totalSub + ' ฉบับ') +
     '</div><section class="card" style="margin-top:18px"><div class="card-head"><h3>ความคืบหน้ารายโครงการ</h3><div class="filters">' +
     '<input class="input" type="search" data-filter="q" placeholder="ค้นหาชื่อเรื่อง รหัส หรือผู้วิจัย" value="' + esc(f.q) + '" aria-label="ค้นหา">' +
     '<select class="select" data-filter="type" aria-label="ประเภทการพิจารณา"><option value="">ทุกประเภท</option>' + Object.keys(TYPES).map(function (k) {
       return '<option value="' + k + '"' + (f.type === k ? ' selected' : '') + '>' + TYPES[k].th + '</option>';
     }).join('') + '</select>' +
     '<select class="select" data-filter="status" aria-label="สถานะ"><option value="">ทุกสถานะ</option>' +
-    [['done', 'พิจารณาครบแล้ว'], ['prog', 'อยู่ระหว่างพิจารณา'], ['late', 'เกินกำหนดส่ง'], ['none', 'ยังไม่มีผู้พิจารณา'], ['unassigned', 'ยังไม่ได้เลือกกรรมการ'], ['closed', 'ปิดรับผลแล้ว']].map(function (o) {
+    [['done', 'พิจารณาครบแล้ว'], ['progress', 'อยู่ระหว่างพิจารณา (รวมเกินกำหนด)'], ['prog', 'อยู่ระหว่างพิจารณา'], ['late', 'เกินกำหนดส่ง'], ['waiting', 'ยังไม่มีผู้พิจารณา (รวมยังไม่ได้เลือกกรรมการ)'], ['none', 'ยังไม่มีผู้พิจารณา'], ['unassigned', 'ยังไม่ได้เลือกกรรมการ'], ['closed', 'ปิดรับผลแล้ว']].map(function (o) {
       return '<option value="' + o[0] + '"' + (f.status === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
-    }).join('') + '</select></div></div><div id="dash-table">' + dashTable() + '</div></section></div>';
+    }).join('') + '</select></div></div><div id="dash-table" tabindex="-1" aria-label="รายการโครงการตามหมวดที่เลือก">' + dashTable() + '</div></section></div>';
+};
+A['dashboard-filter'] = function (el) {
+  if (!isAdmin()) return;
+  S.filters = { q: '', type: '', status: el.dataset.f };
+  render();
+  showDashboardResults('dash-table');
+};
+A['dashboard-reviewers'] = function () {
+  if (!isAdmin()) return;
+  S.usersTab = 'work';
+  S.work = { q: '', f: 'active' };
+  go('users');
 };
 function onFilter(el) {
   S.filters[el.dataset.filter] = el.value;
   var t = $('#dash-table') || $('#proj-table');
   if (t) t.innerHTML = t.id === 'dash-table' ? dashTable() : projTable();
+  $$('[data-act="dashboard-filter"]').forEach(function (button) {
+    var selected = !S.filters.q && !S.filters.type && S.filters.status === button.dataset.f;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
 }
 /* ---------- หน้าต่างรายละเอียดและสถานะของโครงการวิจัย ---------- */
 function revOpinion(r) {
@@ -4177,6 +4224,7 @@ function workTable() {
   var q = S.work.q.trim().toLowerCase(), f = S.work.f;
   var all = workload();
   var list = all.filter(function (w) {
+    if (f === 'active' && (w.user.role === 'admin' || w.user.status !== 'active')) return false;
     if (f === 'todo' && !(w.n.draft + w.n.assigned)) return false;
     if (f === 'late' && !w.n.late) return false;
     if (f === 'none' && w.n.total) return false;
@@ -4259,7 +4307,7 @@ VIEWS.users = function () {
   if (tab === 'work') {
     html += '<section class="card"><div class="card-head"><h3>ตารางกรรมการ ชื่องานวิจัยที่อ่าน และสถานะ</h3><div class="filters">' +
       '<input class="input" type="search" data-work="q" placeholder="ค้นหาชื่อกรรมการ หรือชื่องานวิจัย" value="' + esc(S.work.q) + '" aria-label="ค้นหา">' +
-      '<select class="select" data-work="f" aria-label="สถานะ">' + [['', 'กรรมการทุกท่าน'], ['todo', 'มีงานที่ยังไม่ส่งผล'], ['late', 'มีงานเกินกำหนดส่ง'], ['none', 'ยังไม่มีงานวิจัย']].map(function (o) {
+      '<select class="select" data-work="f" aria-label="สถานะ">' + [['', 'กรรมการทุกท่าน'], ['active', 'กรรมการที่ใช้งานได้'], ['todo', 'มีงานที่ยังไม่ส่งผล'], ['late', 'มีงานเกินกำหนดส่ง'], ['none', 'ยังไม่มีงานวิจัย']].map(function (o) {
         return '<option value="' + o[0] + '"' + (S.work.f === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
       }).join('') + '</select></div></div><div id="work-table">' + workTable() + '</div>' +
       '<div class="card-body small muted" style="border-top:1px solid var(--line)">' + icon('info') + ' กดที่ชื่อกรรมการเพื่อดูรายชื่องานวิจัยทั้งหมด · กดที่ชื่องานวิจัยเพื่อดูรายละเอียดและสถานะ</div></section>';
