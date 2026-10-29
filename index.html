@@ -4452,12 +4452,19 @@ function sysPanel() {
 }
 VIEWS.settings = function () {
   var s = S.settings || {}, base = shareBase();
+  // ช่องว่าง: อีเมลจากเซิร์ฟเวอร์ใช้ที่อยู่ของ Apps Script ส่วน QR Code ใช้ที่อยู่ของหน้านี้ ซึ่งอาจไม่ตรงกัน
+  var mailBase = s.appUrl || (S.meta && S.meta.serviceUrl) || '';
+  var urlHint = s.appUrl ? 'ลิงก์ในอีเมลและ QR Code ใช้ที่อยู่นี้'
+    : 'ลิงก์ในอีเมลขณะนี้: ' + (mailBase ? '<b>' + esc(mailBase) + '</b>' : '<b style="color:var(--bad-ink)">ยังไม่มี</b>') +
+      '<br>QR Code และลิงก์สำหรับแชร์ขณะนี้: ' + (base ? '<b>' + esc(base) + '</b>' : '<b style="color:var(--bad-ink)">ยังไม่มี — ไฟล์ถูกเปิดจากเครื่องโดยตรง กรุณาระบุ URL ที่เผยแพร่</b>') +
+      (base && base !== mailBase ? '<br><button type="button" class="btn soft sm" style="margin-top:6px" data-act="app-url-fill" data-url="' + esc(base) + '">' +
+        icon('link') + 'ให้ลิงก์ในอีเมลเปิดหน้านี้ด้วย</button>' : '');
   return '<div class="wrap"><div class="page-head"><div><h1>ตั้งค่าระบบ</h1><p>ค่าทั้งหมดเก็บในชีต Settings ของ Google Sheets</p></div></div>' +
     '<form data-form="settings" class="stack">' +
     '<section class="card"><div class="card-head"><h3>ทั่วไป</h3></div><div class="card-body stack">' +
     '<label class="field"><span class="label">ชื่อหน่วยงาน</span><input class="input" name="orgName" maxlength="300" value="' + esc(s.orgName || '') + '"></label>' +
-    '<label class="field"><span class="label">ที่อยู่เว็บของระบบ (ใช้สร้างลิงก์ QR Code และลิงก์ในอีเมล)</span><input class="input" name="appUrl" type="url" maxlength="1000" placeholder="เว้นว่างเพื่อใช้ที่อยู่ปัจจุบันโดยอัตโนมัติ" value="' + esc(s.appUrl || '') + '">' +
-    '<span class="hint">ที่อยู่ที่ใช้อยู่ขณะนี้: ' + (base ? '<b>' + esc(base) + '</b>' : '<b style="color:var(--bad-ink)">ยังไม่มี — ไฟล์ถูกเปิดจากเครื่องโดยตรง กรุณาระบุ URL ที่เผยแพร่</b>') + '</span></label>' +
+    '<label class="field"><span class="label">ที่อยู่เว็บของระบบ (ใช้สร้างลิงก์ QR Code และลิงก์ในอีเมล)</span><input class="input" name="appUrl" type="url" maxlength="1000" placeholder="เว้นว่าง = ลิงก์ในอีเมลใช้ที่อยู่ของ Apps Script" value="' + esc(s.appUrl || '') + '">' +
+    '<span class="hint">' + urlHint + '</span></label>' +
     '<label class="field"><span class="label">รหัสลงทะเบียนกรรมการ</span><input class="input" name="regCode" maxlength="100" autocomplete="off" value="' + esc(s.regCode || '') + '">' +
     '<span class="hint">หากกำหนด ผู้ลงทะเบียนต้องกรอกรหัสนี้ เพื่อป้องกันบุคคลภายนอกลงทะเบียน (เว้นว่าง = ไม่ใช้รหัส)</span></label>' +
     toggle('overviewOpen', s.overviewOpen === '1', 'ให้กรรมการเห็นความเห็นของกรรมการท่านอื่นในโครงการเดียวกัน',
@@ -4491,6 +4498,12 @@ F['settings'] = function (form, d, btn) {
     S.system = res.system || S.system;
     return loadProjects(true).then(function () { render(); toast('บันทึกการตั้งค่าเรียบร้อย'); });
   }, fail);
+};
+A['app-url-fill'] = function (el) {
+  var input = el.closest('form').elements.appUrl;
+  input.value = el.dataset.url;
+  input.focus();
+  toast('ใส่ที่อยู่แล้ว กด "บันทึกการตั้งค่า" เพื่อใช้งาน');
 };
 A['maint'] = function (el) {
   busy(el, api('maintenance', { task: el.dataset.task })).then(function (res) {
