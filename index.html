@@ -1669,7 +1669,7 @@ function loadProjects(force) {
     S.projects = res.projects;
     S.meta = {
       reviewerCount: res.reviewerCount || 0, pendingCount: res.pendingCount || 0, orgName: res.orgName,
-      appUrl: res.appUrl || '', overviewOpen: res.overviewOpen, serviceUrl: res.serviceUrl || '',
+      appUrl: res.appUrl || '', overviewOpen: res.overviewOpen, serviceUrl: res.serviceUrl || '', mailUrl: res.mailUrl,
       emailEnabled: !!res.emailEnabled
     };
   });
@@ -4452,8 +4452,10 @@ function sysPanel() {
 }
 VIEWS.settings = function () {
   var s = S.settings || {}, base = shareBase();
-  // ช่องว่าง: อีเมลจากเซิร์ฟเวอร์ใช้ที่อยู่ของ Apps Script ส่วน QR Code ใช้ที่อยู่ของหน้านี้ ซึ่งอาจไม่ตรงกัน
-  var mailBase = s.appUrl || (S.meta && S.meta.serviceUrl) || '';
+  // ช่องว่าง: อีเมลใช้ที่อยู่ที่เซิร์ฟเวอร์กำหนด (Code.gs รุ่นเก่าไม่ส่ง mailUrl มา = ที่อยู่ของ Apps Script)
+  // ส่วน QR Code ใช้ที่อยู่ของหน้านี้ ซึ่งอาจไม่ตรงกัน
+  var meta = S.meta || {};
+  var mailBase = s.appUrl || (meta.mailUrl !== undefined ? meta.mailUrl : meta.serviceUrl) || '';
   var urlHint = s.appUrl ? 'ลิงก์ในอีเมลและ QR Code ใช้ที่อยู่นี้'
     : 'ลิงก์ในอีเมลขณะนี้: ' + (mailBase ? '<b>' + esc(mailBase) + '</b>' : '<b style="color:var(--bad-ink)">ยังไม่มี</b>') +
       '<br>QR Code และลิงก์สำหรับแชร์ขณะนี้: ' + (base ? '<b>' + esc(base) + '</b>' : '<b style="color:var(--bad-ink)">ยังไม่มี — ไฟล์ถูกเปิดจากเครื่องโดยตรง กรุณาระบุ URL ที่เผยแพร่</b>') +
@@ -4463,7 +4465,7 @@ VIEWS.settings = function () {
     '<form data-form="settings" class="stack">' +
     '<section class="card"><div class="card-head"><h3>ทั่วไป</h3></div><div class="card-body stack">' +
     '<label class="field"><span class="label">ชื่อหน่วยงาน</span><input class="input" name="orgName" maxlength="300" value="' + esc(s.orgName || '') + '"></label>' +
-    '<label class="field"><span class="label">ที่อยู่เว็บของระบบ (ใช้สร้างลิงก์ QR Code และลิงก์ในอีเมล)</span><input class="input" name="appUrl" type="url" maxlength="1000" placeholder="เว้นว่าง = ลิงก์ในอีเมลใช้ที่อยู่ของ Apps Script" value="' + esc(s.appUrl || '') + '">' +
+    '<label class="field"><span class="label">ที่อยู่เว็บของระบบ (ใช้สร้างลิงก์ QR Code และลิงก์ในอีเมล)</span><input class="input" name="appUrl" type="url" maxlength="1000" placeholder="เว้นว่าง = ใช้ที่อยู่ที่แสดงด้านล่าง" value="' + esc(s.appUrl || '') + '">' +
     '<span class="hint">' + urlHint + '</span></label>' +
     '<label class="field"><span class="label">รหัสลงทะเบียนกรรมการ</span><input class="input" name="regCode" maxlength="100" autocomplete="off" value="' + esc(s.regCode || '') + '">' +
     '<span class="hint">หากกำหนด ผู้ลงทะเบียนต้องกรอกรหัสนี้ เพื่อป้องกันบุคคลภายนอกลงทะเบียน (เว้นว่าง = ไม่ใช้รหัส)</span></label>' +
