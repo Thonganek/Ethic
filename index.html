@@ -1325,6 +1325,11 @@ var store = {
   del: function (k) { delete memStore[k]; try { window.localStorage.removeItem('reru.' + k); } catch (e) { /* ข้าม */ } },
   json: function (k, fallback) { try { var v = store.get(k); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
 };
+/* จำเฉพาะแท็บนี้ (ปิดแท็บแล้วหายไป) */
+var tabStore = {
+  get: function (k) { try { return window.sessionStorage.getItem('reru.' + k); } catch (e) { return null; } },
+  set: function (k, v) { try { window.sessionStorage.setItem('reru.' + k, v); } catch (e) { /* ข้าม */ } }
+};
 
 var ICONS = {
   check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
@@ -1630,6 +1635,7 @@ function signIn(res) {
   S.user = res.user;
   S.defaultPw = !!res.defaultPassword;
   store.set('token', S.token);
+  if (S.invite) tabStore.set('invite', S.invite);
   enterApp();
 }
 function signOut() {
@@ -1844,7 +1850,8 @@ function authCard() {
     (login ? 'เข้าสู่ระบบเพื่อพิจารณาโครงการวิจัยที่ท่านได้รับมอบหมาย' : 'กรอกข้อมูลเพื่อขอเข้าใช้ระบบพิจารณาจริยธรรมการวิจัย') + '</p></div>';
   if (S.invite) {
     html += '<div class="invite"><div class="eyebrow">ลิงก์เชิญพิจารณาโครงการวิจัย</div><h3>เข้าสู่ระบบเพื่อเปิดแบบประเมิน</h3>' +
-      '<p class="small" style="margin-top:4px;color:var(--ink-2)">รายละเอียดโครงการจะแสดงเฉพาะกรรมการที่ได้รับมอบหมายให้พิจารณา</p></div>';
+      '<p class="small" style="margin-top:4px;color:var(--ink-2)">กรรมการแต่ละท่านกรุณาเข้าสู่ระบบด้วยชื่อผู้ใช้และรหัสผ่านของตนเอง ' +
+      'รายละเอียดโครงการจะแสดงเฉพาะกรรมการที่ได้รับมอบหมายให้พิจารณา</p></div>';
   }
   html += '<div class="tabs" role="tablist">' +
     '<button class="tab' + (login ? ' active' : '') + '" data-act="auth-tab" data-tab="login" role="tab" aria-selected="' + login + '">เข้าสู่ระบบ</button>' +
@@ -4076,6 +4083,7 @@ function inviteText(p, link) {
   return 'เรียน ' + (names.length ? names.join(', ') : 'คณะกรรมการจริยธรรมการวิจัยในมนุษย์') + '\n\nขอเชิญพิจารณาโครงการวิจัย\nเรื่อง: ' + p.title +
     (p.code ? '\nหมายเลขสำคัญโครงการ: ' + p.code : '') + '\nประเภทการพิจารณา: ' + TYPES[p.reviewType].th +
     (p.dueDate ? '\nกำหนดส่งผลการประเมิน: ' + fmtDate(p.dueDate, true) : '') +
+    (p.docUrl ? '\nเอกสารโครงการวิจัย: ' + p.docUrl : '') +
     '\n\nลิงก์เข้าพิจารณา: ' + link + '\n(เข้าสู่ระบบด้วยบัญชีของท่าน แล้วกรอกแบบประเมินออนไลน์)';
 }
 function copyText(text) {
@@ -4978,6 +4986,9 @@ function boot() {
       return render();
     }
     S.token = store.get('token') || '';
+    // เปิดจากลิงก์เชิญ (อีเมล / QR / LINE): ให้กรรมการเข้าสู่ระบบด้วยบัญชีของตนก่อนเสมอ
+    // แม้เครื่องนี้จะจำการเข้าสู่ระบบของผู้อื่นไว้ ยกเว้นการรีเฟรชในแท็บที่เข้าสู่ระบบผ่านลิงก์นี้แล้ว
+    if (S.invite && tabStore.get('invite') !== S.invite) S.token = '';
     return api('publicInfo', {}).then(function (pub) {
       S.pub = pub;
       var showAuth = function () {
